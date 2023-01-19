@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PROJECT_SOURCE_DIR}/cmake")
 
 # Requires LLVM
-find_package(LLVM 12.0.0 REQUIRED CONFIG PATHS /usr/lib/llvm-12/lib )
+find_package(LLVM 15 REQUIRED)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Found LLVM Tools in ${LLVM_TOOLS_BINARY_DIR}")

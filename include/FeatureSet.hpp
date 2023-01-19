@@ -98,7 +98,7 @@ template <typename T>
 void print_feature_names(llvm::StringMap<T> &feature_map, llvm::raw_ostream &out_stream){
     auto keys = feature_map.keys();
     stringstream ss;
-    for(StringRef &f : keys){
+    for(StringRef f : keys){
         ss << std::setw(7) << f.str() << " ";
     }
     ss << "\n";
@@ -110,7 +110,7 @@ template <typename T>
 void print_feature_values(llvm::StringMap<T> &feature_map, llvm::raw_ostream &out_stream){
     auto keys = feature_map.keys();
     stringstream ss;    
-    for(StringRef &f : keys){
+    for(StringRef f : keys){
         if constexpr(std::is_same<float,T>::value){            
             ss << std::setprecision(3) 
                << std::setfill(' ') 

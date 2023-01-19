@@ -1,5 +1,6 @@
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/Analysis/ScalarEvolution.h>
+#include <llvm/Analysis/AssumptionCache.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/Pass.h>

@@ -9,6 +9,7 @@ using namespace std;
 #include <llvm/Pass.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/PassPlugin.h>
+#include <llvm/Passes/OptimizationLevel.h>
 #include <llvm/Transforms/Scalar/IndVarSimplify.h>
 #include <llvm/Transforms/Utils/LCSSA.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
@@ -19,7 +20,7 @@ using namespace llvm;
 //#include "PolFeatAnalysis.hpp"
 #include "Kofler13Analysis.hpp"
 #include "FeaturePrinter.hpp"
-#include "PolFeatPrinter.hpp"
+// #include "PolFeatPrinter.hpp"
 using namespace celerity;
 
 //-----------------------------------------------------------------------------
@@ -43,7 +44,7 @@ llvm::PassPluginLibraryInfo getFeatureExtractionPassPluginInfo()
                 FPM.addPass(FeaturePrinterPass<DefaultFeatureAnalysis>(llvm::outs())); 
                 FPM.addPass(LCSSAPass());                
                 FPM.addPass(FeaturePrinterPass<Kofler13Analysis>(llvm::outs())); 
-                FPM.addPass(PolFeatPrinterPass(llvm::outs()));
+                // FPM.addPass(PolFeatPrinterPass(llvm::outs()));
                 return true;
               }
               return false;
@@ -51,12 +52,12 @@ llvm::PassPluginLibraryInfo getFeatureExtractionPassPluginInfo()
         // #2 REGISTRATION FOR "-O{1|2|3|s}"
         // Register FeaturePrinterPass as a step of an existing pipeline.
         PB.registerVectorizerStartEPCallback(
-            [](llvm::FunctionPassManager &PM, llvm::PassBuilder::OptimizationLevel Level)
+            [](llvm::FunctionPassManager &PM, llvm::OptimizationLevel Level)
             {
               PM.addPass(FeaturePrinterPass<DefaultFeatureAnalysis>(llvm::outs()));
               PM.addPass(LCSSAPass());                
               PM.addPass(FeaturePrinterPass<Kofler13Analysis>(llvm::outs()));
-              PM.addPass(PolFeatPrinterPass(llvm::outs()));
+              // PM.addPass(PolFeatPrinterPass(llvm::outs()));
             });
         // #3 REGISTRATION FOR "FAM.getResult<FeatureAnalysis>(Func)"
         // Register FeatureAnalysis as an analysis pass, so that FeaturePrinterPass can request the results of FeatureAnalysis.
@@ -65,7 +66,7 @@ llvm::PassPluginLibraryInfo getFeatureExtractionPassPluginInfo()
             {
               FAM.registerPass([&] { return DefaultFeatureAnalysis("grewe11"); });              
               FAM.registerPass([&] { return Kofler13Analysis(); });
-              FAM.registerPass([&] { return PolFeatAnalysis(); });
+              // FAM.registerPass([&] { return PolFeatAnalysis(); });
             });
       }};
 }
