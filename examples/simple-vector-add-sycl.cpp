@@ -1,7 +1,4 @@
 
-
-/* This example is a very small one designed to show how compact SYCL code
- * can be. That said, it includes no error checking and is rather terse. */
 #include <sycl/sycl.hpp>
 
 #include <array>
@@ -10,8 +7,6 @@
 constexpr sycl::access::mode sycl_read = sycl::access::mode::read;
 constexpr sycl::access::mode sycl_write = sycl::access::mode::write;
 
-/* This is the class used to name the kernel for the runtime.
- * This must be done when the kernel is expressed as a lambda. */
 template <typename T>
 class SimpleVadd;
 

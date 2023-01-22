@@ -1,6 +1,5 @@
 #!/bin/bash
 
-SYCL_INCLUDE=$COMPUTECPP_DIR/include
 SYCL_FILES="example-application-sycl.cpp matrix-multiply-sycl.cpp simple-vector-add-sycl.cpp"
 
 cd samples
@@ -8,7 +7,7 @@ cd samples
 # SYCL compilation
 for SYCL_FILE in ${SYCL_FILES}; do
 echo "SYCLFILE $SYCL_FILE"
-compute++ -O2 -mllvm -inline-threshold=1000 -sycl -intelspirmetadata -sycl-target spir64 -I$SYCL_INCLUDE $SYCL_FILE 
+clang++ -O2 -fsycl -fsycl-targets=spir64 -fsycl-device-only -fsycl-use-bitcode samples/simple-vector-add-sycl.cpp 
 done
 
 # feature extraction from bitcode

@@ -1,44 +1,11 @@
-/***************************************************************************
- *
- *  Copyright (C) 2016 Codeplay Software Limited
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  For your convenience, a copy of the License has been included in this
- *  repository.
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *  Codeplay's ComputeCpp SDK
- *
- *  matrix-multiply.cpp
- *
- *  Description:
- *    Example of matrix multiplication in SYCL.
- *
- **************************************************************************/
-
-/*  This example compares an OpenMP blocked matrix multiplication
- *  implementation with a SYCL blocked matrix multiplication example.
- *  The purpose is not to compare performance, but to show the similarities
- *  and differences between them.
- *  See block_host for the OpenMP implementation. */
-
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <chrono>
 #include <cmath>
 #include <ctime>
 #include <iostream>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 void display_matrix(float* m, int matSize) {
   if (matSize > 16) {
@@ -56,12 +23,7 @@ void display_matrix(float* m, int matSize) {
   ;
 }
 
-/* Implements a host C++ version of the matrix multiplication.
- * If compiler supports OpenMP, code is parallelized. Scheduling
- * uses static chunks of block_size. */
 void block_host(float* MA, float* MB, float* MC, int matSize) {
-  /* We set the block size to 32 for simplicity, though the optimal
-   * value will depend on the platform this is run on. */
   int block_size = 32;
   int numBlocks = block_size / matSize;
   int extraBlockLength = block_size % matSize;
@@ -83,10 +45,6 @@ void block_host(float* MA, float* MB, float* MC, int matSize) {
       }
 }
 
-/* Obtains the previous power of two from the given integer.
- * It works by masking out all ones after the first one bit,
- * then leaves the first one bit intact, effectively
- * yielding the first power of two < x. */
 inline int prevPowerOfTwo(int x) {
   if (x < 0) {
     return 0;
@@ -100,27 +58,12 @@ inline int prevPowerOfTwo(int x) {
   return x - (x >> 1);
 }
 
-/* Checks if X is a power of two.
- * If there are bits sets to one after AND with the
- * previous number, then it is not a power of two.
- */
 inline bool isPowerOfTwo(int x) {
   return (x & (x - 1)) == 0;
 }
 
-/* Function template that performs the matrix * matrix operation. (It is
- * a template because only some OpenCL devices support double-precision
- * floating-point numbers, but it is interesting to make the comparison
- * where available.)
- * Broadly, the function chooses an appropriate work size, then enqueues
- * the matrix * matrix lambda on the queue provided. Because the queues
- * are constructed inside this function, it will block until the work is
- * finished.
- * Note that this example only works for powers of two.
- * */
 template <typename T>
-bool local_mxm(cl::sycl::queue& q, T* MA, T* MB, T* MC, int matSize) {
-  // Make sure it is power of two before running
+bool local_mxm(::queue& q, T* MA, T* MB, T* MC, int matSize) {
   if (!isPowerOfTwo(matSize)) {
     std::cout << " This example only works with power of two sizes "
               << std::endl;
@@ -129,22 +72,15 @@ bool local_mxm(cl::sycl::queue& q, T* MA, T* MB, T* MC, int matSize) {
 
   auto device = q.get_device();
   auto maxBlockSize =
-      device.get_info<cl::sycl::info::device::max_work_group_size>();
+      device.get_info<::info::device::max_work_group_size>();
   auto blockSize = prevPowerOfTwo(std::sqrt(maxBlockSize));
   std::cout << " The Device Max Work Group Size is : " << maxBlockSize
             << std::endl;
   std::cout << " The order is : " << matSize << std::endl;
   std::cout << " The blockSize is : " << blockSize << std::endl;
-  // Make sure the block size is not larger than the mat size
   blockSize = std::min(matSize, blockSize);
 
   {
-    /* Buffers can be constructed with property lists. In this example,
-     * the buffer is given the property "use host pointer", which tells
-     * the runtime to use the host pointer for all data storage (instead
-     * of making copies internally). Additionally, when running on a
-     * device that shares memory with the host (for example a CPU),
-     * "zero-copy" memory optimisations can be used by the driver. */
     range<1> dimensions(matSize * matSize);
     const property_list props = {property::buffer::use_host_ptr()};
     buffer<T> bA(MA, dimensions, props);
@@ -330,18 +266,12 @@ int main(int argc, char* argv[]) {
 
     {
       {
-        /* Create the SYCL queue - note that we add an async handler function
-         * to capture potential asynchronous errors. This function will be
-         * called every time there is an asynchronous error on the queue (i.e.
-         * some error occurs while the queue is executing kernels) and one of
-         * cl::sycl::queue::throw() or cl::sycl::queue::wait_and_throw() is
-         * called. */
         queue q([&](exception_list eL) {
           try {
             for (auto& e : eL) {
               std::rethrow_exception(e);
             }
-          } catch (cl::sycl::exception e) {
+          } catch (::exception e) {
             std::cout << " An exception has been thrown: " << e.what()
                       << std::endl;
           }
