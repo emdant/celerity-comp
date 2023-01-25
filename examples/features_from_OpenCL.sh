@@ -1,27 +1,25 @@
 #!/bin/bash
+alias clang=clang-15
+alias opt="opt-15 -load-pass-plugin ./libfeature_pass.so  --passes=\"print<feature>\" -disable-output"
 
 # tested with LLVM 12.0
 echo
 echo "$(tput setaf 1) Generating LLVM IR from generic C function and OpenCL kernels $(tput sgr 0)"
-clang-15 -S -x cl -emit-llvm -cl-std=CL2.0 -Xclang -finclude-default-header samples/vecadd.cl -o samples/vecadd.bc
-clang-15 -S -x cl -emit-llvm -cl-std=CL2.0 -Xclang -finclude-default-header samples/2mm.cl -o samples/2mm.bc
-clang-15 -S -x cl -emit-llvm -cl-std=CL2.0 -Xclang -finclude-default-header samples/3mm.cl -o samples/3mm.bc
-clang-15 -S -x cl -emit-llvm -cl-std=CL2.0 -Xclang -finclude-default-header samples/coalesced.cl -o samples/coalesced.bc
-clang-15 -S -x cl -emit-llvm -cl-std=CL2.0 -Xclang -finclude-default-header samples/kmeans.cl -o samples/kmeans.bc
-clang-15 -S -x cl -emit-llvm -cl-std=CL2.0 -Xclang -finclude-default-header samples/softmax_loss.cl -o samples/softmax_loss.bc
-clang-15 -S -x cl -emit-llvm -cl-std=CL2.0 -Xclang -finclude-default-header samples/parboil.cl -o samples/parboil.bc
-clang-15 -S -emit-llvm samples/simple_loop.c -o samples/simple_loop.bc
+for file in opencl/*.cl; do
+  name="${file%.*}"
+  clang -S -x cl -emit-llvm -cl-std=CL2.0 -Xclang -finclude-default-header $file -o $name.bc
+done
 
-echo
-echo "$(tput setaf 1) Feature evaluation from LLVM IR with LLVM modular optimizer (opt) $(tput sgr 0)"
-opt-15 -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output samples/vecadd.bc
-opt-15 -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output samples/2mm.bc
-opt-15 -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output samples/3mm.bc
-opt-15 -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output samples/coalesced.bc
-opt-15 -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output samples/kmeans.bc
-opt-15 -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output samples/softmax_loss.bc
-opt-15 -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output samples/parboil.bc
-opt-15 -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output samples/simple_loop.bc
+for file in opencl/*.c; do
+  name="${file%.*}"
+  clang -S -emit-llvm $file -o $name.bc
+done
+
+# echo
+# echo "$(tput setaf 1) Feature evaluation from LLVM IR with LLVM modular optimizer (opt) $(tput sgr 0)"
+# for file in opencl/*.bc; do
+#   opt $file
+# done
 
 #echo
 #echo "$(tput setaf 1) Feature extraction from LLVM IR with the extractor utility $(tput sgr 0)"
