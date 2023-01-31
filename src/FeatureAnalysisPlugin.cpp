@@ -32,7 +32,7 @@ llvm::PassPluginLibraryInfo getFeatureExtractionPassPluginInfo() {
 		        //  Register FeaturePrinterPass so that it can be used when specifying pass pipelines with `-passes=`.
 		        PB.registerPipelineParsingCallback([&](StringRef Name, FunctionPassManager& FPM, ArrayRef<PassBuilder::PipelineElement>) {
 			        // outs() << " * plugin input " << Name << "\n";
-			        if(Name == "print<feature>") {
+			        if (Name == "print<feature>") {
 				        FPM.addPass(FeaturePrinterPass<DefaultFeatureAnalysis>(llvm::outs()));
 				        FPM.addPass(LCSSAPass());
 				        FPM.addPass(FeaturePrinterPass<Kofler13Analysis>(llvm::outs()));
@@ -52,7 +52,7 @@ llvm::PassPluginLibraryInfo getFeatureExtractionPassPluginInfo() {
 		        // #3 REGISTRATION FOR "FAM.getResult<FeatureAnalysis>(Func)"
 		        // Register FeatureAnalysis as an analysis pass, so that FeaturePrinterPass can request the results of FeatureAnalysis.
 		        PB.registerAnalysisRegistrationCallback([](FunctionAnalysisManager& FAM) {
-			        FAM.registerPass([&] { return DefaultFeatureAnalysis("grewe11"); });
+			        FAM.registerPass([&] { return DefaultFeatureAnalysis(); });
 			        FAM.registerPass([&] { return Kofler13Analysis(); });
 			        // FAM.registerPass([&] { return PolFeatAnalysis(); });
 		        });

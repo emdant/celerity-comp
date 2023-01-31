@@ -41,10 +41,12 @@ class Registry {
 	static void unregisterByKey(const llvm::StringRef& key) { map().erase(key); }
 
 	/// registered keys
-	static std::list<StringRef> getKeyList() {
-		std::list<StringRef> key_list;
-		for(StringRef& s : map().keys())
+	static std::list<llvm::StringRef> getKeyList() {
+		std::list<llvm::StringRef> key_list;
+
+		for (llvm::StringRef& s : map().keys())
 			key_list.push_back(s);
+
 		return key_list;
 	}
 

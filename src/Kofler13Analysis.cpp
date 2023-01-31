@@ -12,7 +12,6 @@
 #include <llvm/Transforms/Utils/LoopSimplify.h>
 using namespace llvm;
 
-#include "FeatureNormalization.hpp"
 #include "FeaturePrinter.hpp"
 #include "Kofler13Analysis.hpp"
 using namespace celerity;
@@ -27,46 +26,50 @@ void Kofler13Analysis::extract(llvm::Function& fun, llvm::FunctionAnalysisManage
 	AssumptionCache& AC = FAM.getResult<AssumptionAnalysis>(fun);
 
 	LoopAnalysisManager* LAM = nullptr;
-	if(auto* LAMProxy = FAM.getCachedResult<LoopAnalysisManagerFunctionProxy>(fun)) LAM = &LAMProxy->getManager();
+	if (auto* LAMProxy = FAM.getCachedResult<LoopAnalysisManagerFunctionProxy>(fun))
+		LAM = &LAMProxy->getManager();
 	auto& MAMProxy = FAM.getResult<ModuleAnalysisManagerFunctionProxy>(fun);
 	bool changed = false;
-	for(auto& loop : LI) {
+	for (auto& loop : LI) {
 		changed |= simplifyLoop(loop, &DT, &LI, &SE, &AC, nullptr, false);
 		changed |= formLCSSARecursively(*loop, DT, &LI, &SE);
 	}
 	outs() << " loop in LCSSA form (loop has changed:" << changed << ")\n";
 
 	// loop checks
-	for(Loop* loop : LI.getLoopsInPreorder()) {
-		if(!loop->isLoopSimplifyForm()) errs() << " WARNING Loop is not in normal form\n";
+	for (Loop* loop : LI.getLoopsInPreorder()) {
+		if (!loop->isLoopSimplifyForm())
+			errs() << " WARNING Loop is not in normal form\n";
 		// if (!loop->isCanonical(SE)) errs() << " WARNING Loop is not canonical\n";
-		if(!loop->isLCSSAForm(DT)) errs() << " WARNING Loop is not in LCSSA form\n";
+		if (!loop->isLCSSAForm(DT))
+			errs() << " WARNING Loop is not in LCSSA form\n";
 		// else                        errs() << " Loop is in LCSSA form\n";
 		BasicBlock* Latch = loop->getLoopLatch();
-		if(loop->getExitingBlock() != Latch) errs() << " WARNING Loop: Exiting and latch block are different\n";
+		if (loop->getExitingBlock() != Latch)
+			errs() << " WARNING Loop: Exiting and latch block are different\n";
 	}
 
 	// 1. For each BB, we initialize it's "loop multiplier" to 1
 	std::unordered_map<const llvm::BasicBlock*, unsigned> multiplier;
-	for(const BasicBlock& bb : fun.getBasicBlockList()) {
+	for (const BasicBlock& bb : fun.getBasicBlockList()) {
 		multiplier[&bb] = 1.0f;
 	}
 	// 2. For each, we cacluate the loop contribution
 	std::map<Loop*, int> loop_cost;
-	for(Loop* loop : LI.getLoopsInPreorder()) {
+	for (Loop* loop : LI.getLoopsInPreorder()) {
 		loop_cost[loop] = loopContribution(*loop, LI, SE);
 	}
 	// 3. For each BB in a loop, we multiply that "loop multiplier" times the loop cost
-	for(Loop* loop : LI.getLoopsInPreorder()) {
-		for(BasicBlock* bb : loop->getBlocks()) { // TODO: shold we only count the body?
+	for (Loop* loop : LI.getLoopsInPreorder()) {
+		for (BasicBlock* bb : loop->getBlocks()) { // TODO: shold we only count the body?
 			multiplier[bb] *= loop_cost[loop];
 		}
 	}
 	// 4. Final evaluation
-	for(llvm::BasicBlock& bb : fun) {
+	for (llvm::BasicBlock& bb : fun) {
 		int mult = multiplier[&bb];
 		// outs() << "BB mult: " << mult << "\n";
-		for(Instruction& i : bb) {
+		for (Instruction& i : bb) {
 			features->eval(i, mult);
 		}
 	}
@@ -75,13 +78,13 @@ void Kofler13Analysis::extract(llvm::Function& fun, llvm::FunctionAnalysisManage
 int Kofler13Analysis::loopContribution(const Loop& loop, LoopInfo& LI, ScalarEvolution& SE) {
 	// print loop info
 	PHINode* ind_var = loop.getInductionVariable(SE);
-	if(ind_var == nullptr) {
+	if (ind_var == nullptr) {
 		outs() << "  WARNING: induction variable not found, counting default loop contribution\n";
 		return default_loop_contribution;
 	}
 
 	Optional<Loop::LoopBounds> bounds = Loop::LoopBounds::getBounds(loop, *ind_var, SE);
-	if(!bounds) {
+	if (!bounds) {
 		outs() << "  WARNING: loop bound not found, counting default loop contribution\n";
 		return default_loop_contribution;
 	}
@@ -89,8 +92,8 @@ int Kofler13Analysis::loopContribution(const Loop& loop, LoopInfo& LI, ScalarEvo
 	// calculate loop cost
 	// case 1: uv is an integer and constant
 	Value& final = bounds->getFinalIVValue();
-	if(ConstantInt* ci = dyn_cast<ConstantInt>(&final)) {
-		if(ci->getBitWidth() <= 32) {
+	if (ConstantInt* ci = dyn_cast<ConstantInt>(&final)) {
+		if (ci->getBitWidth() <= 32) {
 			int int_val = ci->getSExtValue();
 			outs() << "  CONST loop size is " << int_val << "\n";
 			return int_val;

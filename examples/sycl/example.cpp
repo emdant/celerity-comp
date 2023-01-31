@@ -4,8 +4,8 @@
 
 using namespace sycl;
 
-const size_t N = 100;
-const size_t M = 150;
+constexpr size_t N = 100;
+constexpr size_t M = 150;
 
 int main() {
   {
@@ -17,14 +17,14 @@ int main() {
 
     myQueue.submit([&](handler& cgh) {
       auto A = a.get_access<access::mode::write>(cgh);
-      cgh.parallel_for(range<2>{N, M}, [=](id<2> index) {
+      cgh.parallel_for<class InitA>(range<2>{N, M}, [=](id<2> index) {
         A[index] = index[0] * 2 + index[1];
       });
     });
 
     myQueue.submit([&](handler& cgh) {
       auto B = b.get_access<access::mode::write>(cgh);
-      cgh.parallel_for<class init_b>(range<2>{N, M}, [=](id<2> index) {
+      cgh.parallel_for<class InitB>(range<2>{N, M}, [=](id<2> index) {
         B[index] = index[0] * 2014 + index[1] * 42;
       });
     });
@@ -33,7 +33,7 @@ int main() {
       auto A = a.get_access<access::mode::read>(cgh);
       auto B = b.get_access<access::mode::read>(cgh);
       auto C = c.get_access<access::mode::write>(cgh);
-      cgh.parallel_for<class matrix_add>(
+      cgh.parallel_for<class MatrixAdd>(
           range<2>{N, M}, [=](id<2> index) { C[index] = A[index] + B[index]; });
     });
 

@@ -1,30 +1,21 @@
 //
 // Created by nadjib on 20.06.19.
 //
-
-#ifndef CELERITY_COMP_CELERITY_INTERFACE_PASS_H
-#define CELERITY_COMP_CELERITY_INTERFACE_PASS_H
-
-
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Pass.h"
-
-#include "llvm/Demangle/Demangle.h"
-
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
-
+#pragma once
 
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <string>
 
-using namespace llvm;
-using namespace std;
+#include "llvm/Demangle/Demangle.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Pass.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
 namespace celerity {
 
@@ -33,33 +24,31 @@ namespace celerity {
  * The extraction of features from a single instruction is delegated to a feature set class.
  * In this basic implementation, BB's instruction contributions are summed up.
  */
-class CelerityInterfacePass : public ModulePass {
-  public:
-	static char ID;
-	// By default we go for std:cout as the output stream
-	std::ostream* outputstreamPtr = &std::cout;
+class CelerityInterfacePass : public llvm::ModulePass {
+public:
+  static char ID;
+  // By default we go for std:cout as the output stream
+  std::ostream* outputstreamPtr = &std::cout;
 
-	CelerityInterfacePass() : ModulePass(ID) {}
+  CelerityInterfacePass() : ModulePass(ID) {}
 
-	~CelerityInterfacePass() {}
+  ~CelerityInterfacePass() {}
 
-	virtual void getAnalysisUsage(AnalysisUsage& au) const { au.setPreservesAll(); }
+  virtual void getAnalysisUsage(llvm::AnalysisUsage& au) const { au.setPreservesAll(); }
 
-	virtual bool runOnModule(Module& m);
-	virtual bool runOnFunction(Function& f);
+  virtual bool runOnModule(llvm::Module& m);
+  virtual bool runOnFunction(llvm::Function& f);
 
-	virtual void printInterfaceHeader();
-	virtual void printKernelClass(const std::string& kernelName, Function& f);
+  virtual void printInterfaceHeader();
+  virtual void printKernelClass(const std::string& kernelName, llvm::Function& f);
 
-	virtual bool isItaniumEncoding(const std::string& MangledName);
-	virtual std::string demangle(const std::string& MangledName);
+  virtual bool isItaniumEncoding(const std::string& MangledName);
+  virtual std::string demangle(const std::string& MangledName);
 
-	// Getter and setter for current output stream
-	std::ostream& outputstream() { return *outputstreamPtr; }
+  // Getter and setter for current output stream
+  std::ostream& outputstream() { return *outputstreamPtr; }
 
-	void setOutputStream(std::ostream& outs = std::cout) { outputstreamPtr = &outs; }
+  void setOutputStream(std::ostream& outs = std::cout) { outputstreamPtr = &outs; }
 };
+
 } // namespace celerity
-
-
-#endif // CELERITY_COMP_CELERITY_INTERFACE_PASS_H

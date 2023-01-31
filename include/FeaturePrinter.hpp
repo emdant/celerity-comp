@@ -7,45 +7,49 @@
 #include <llvm/IR/Module.h>
 using namespace llvm;
 
+#include "AnalysisUtils.hpp"
 #include "FeatureAnalysis.hpp"
-#include "FeatureNormalization.hpp"
-#include "FeaturePrinter.hpp"
-#include "FeatureSet.hpp"
-
 
 namespace celerity {
 
 // Pass printing the results of a feature analysis.
 template <typename AnalysisType>
 struct FeaturePrinterPass : public llvm::PassInfoMixin<celerity::FeaturePrinterPass<AnalysisType>> {
-	static_assert(std::is_base_of<FeatureAnalysis, AnalysisType>::value, "AnalysisType must derive from FeatureAnalysis");
+  static_assert(std::is_base_of<FeatureAnalysis, AnalysisType>::value, "AnalysisType must derive from FeatureAnalysis");
 
-  public:
-	explicit FeaturePrinterPass(llvm::raw_ostream& stream) : out_stream(stream) {}
+public:
+  explicit FeaturePrinterPass(llvm::raw_ostream& stream) : out_stream(stream) {}
 
-	llvm::PreservedAnalyses run(llvm::Function& fun, llvm::FunctionAnalysisManager& fam) {
-		out_stream.changeColor(llvm::raw_null_ostream::Colors::MAGENTA);
-		out_stream << "Print features for function: " << fun.getName() << "\n";
-		out_stream.changeColor(llvm::raw_null_ostream::Colors::YELLOW);
+  llvm::PreservedAnalyses run(llvm::Function& fun, llvm::FunctionAnalysisManager& fam)
+  {
+    using rfa = ResultFeatureAnalysis;
 
-		ResultFeatureAnalysis& feature_set = fam.getResult<AnalysisType>(fun);
+    ResultFeatureAnalysis& analysis_result = fam.getResult<AnalysisType>(fun);
 
-		out_stream.changeColor(llvm::raw_null_ostream::Colors::WHITE, true);
-		print_feature_names(feature_set.raw, out_stream);
-		out_stream.changeColor(llvm::raw_null_ostream::Colors::WHITE, false);
-		print_feature_values(feature_set.raw, out_stream);
-		out_stream.changeColor(llvm::raw_null_ostream::Colors::WHITE, true);
-		print_feature_names(feature_set.feat, out_stream);
-		out_stream.changeColor(llvm::raw_null_ostream::Colors::WHITE, false);
-		print_feature_values(feature_set.feat, out_stream);
+    if (!analysis_result.printResult)
+      return PreservedAnalyses::all();
 
-		return PreservedAnalyses::all();
-	}
+    out_stream.changeColor(llvm::raw_null_ostream::Colors::MAGENTA);
+    out_stream << "Print features for function: " << fun.getName() << "\n";
+    out_stream.changeColor(llvm::raw_null_ostream::Colors::YELLOW);
 
-	static bool isRequired() { return true; }
+    out_stream.changeColor(llvm::raw_null_ostream::Colors::WHITE, true);
+    print_feature_names<rfa::counters_type>(analysis_result.features_counters, out_stream);
+    out_stream.changeColor(llvm::raw_null_ostream::Colors::WHITE, false);
+    print_feature_values<rfa::counters_type>(analysis_result.features_counters, out_stream);
 
-  private:
-	llvm::raw_ostream& out_stream;
+    out_stream.changeColor(llvm::raw_null_ostream::Colors::WHITE, true);
+    print_feature_names<rfa::normalization_type>(analysis_result.features_normalized, out_stream);
+    out_stream.changeColor(llvm::raw_null_ostream::Colors::WHITE, false);
+    print_feature_values<rfa::normalization_type>(analysis_result.features_normalized, out_stream);
+
+    return PreservedAnalyses::all();
+  }
+
+  static bool isRequired() { return true; }
+
+private:
+  llvm::raw_ostream& out_stream;
 };
 
 } // end namespace celerity

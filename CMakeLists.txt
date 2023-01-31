@@ -27,25 +27,36 @@ option(SAMPLE_SCRIPTS "Install sample scripts for C functions, OpenCL and SYCL" 
 # Optional: Celerity runtime integration
 option(CELERITY_RUNTIME "Install the integration layer for Celerity (requires existing Celerity Runtime installation)" OFF)
 
-# Sources
-set(FEATURE_SRC src/FeatureSet.cpp src/FeatureAnalysisPlugin.cpp
-  src/FeatureAnalysis.cpp src/Kofler13Analysis.cpp src/DefaultFeatureAnalysis.cpp)
+# Build the LLVM pass to be used with the optimizer
+add_library(feature_pass SHARED)
+target_include_directories(feature_pass PUBLIC include ${LLVM_INCLUDE_DIRS})
+
+target_sources(feature_pass
+  PRIVATE
+  src/feature-sets/FeatureSet.cpp
+  src/feature-sets/FanFeatureSet.cpp
+  src/feature-sets/Grewe11FeatureSet.cpp
+  src/feature-sets/FullFeatureSet.cpp
+  src/FeatureAnalysisPlugin.cpp
+  src/FeatureAnalysis.cpp
+  src/Kofler13Analysis.cpp
+  src/DefaultFeatureAnalysis.cpp
+  src/AnalysisUtils.cpp
+)
 
 # Support for polynomial features
 if(POLFEAT)
   find_package(FLINT REQUIRED)
-  set(EXTRA_INCLUDE ${FLINT_INCLUDE_DIRS})
-  set(FEATURE_SRC ${FEATURE_SRC} src/KernelInvariant.cpp src/PolFeatAnalysis.cpp src/IMPoly.cpp)
-  set(EXTRA_LIB ${FLINT_LIBRARIES})
+  target_include_directories(feature_pass PUBLIC ${FLINT_INCLUDE_DIRS})
+  target_sources(feature_pass PRIVATE src/KernelInvariant.cpp src/PolFeatAnalysis.cpp src/IMPoly.cpp)
+  target_link_libraries(feature_pass PUBLIC ${FLINT_LIBRARIES})
 
   # IMPoly test function
-  add_executable(test_impoly ${FEATURE_SRC} src/test_impoly.cpp)
-  target_link_libraries(test_impoly ${llvm_libs} ${EXTRA_LIB})
+  add_executable(test_impoly ${FEATURE_SRC} test/test_impoly.cpp)
+
+  target_link_libraries(test_impoly PUBLIC feature_pass ${llvm_libs} ${EXTRA_LIB})
   target_compile_options(test_impoly PUBLIC -Wl,-znodelete)
 endif(POLFEAT)
-
-# Add includes
-include_directories(${LLVM_INCLUDE_DIRS} "${PROJECT_SOURCE_DIR}/include" ${EXTRA_INCLUDE})
 
 # Build the feature extraction tool
 if(EXTRACTOR_TOOL)
@@ -55,11 +66,6 @@ if(EXTRACTOR_TOOL)
 
   # target_include_directories(feature_ext ${LLVM_INCLUDE_DIRS} ${FLINT_INCLUDE_DIR} "${PROJECT_SOURCE_DIR}/include")
 endif(EXTRACTOR_TOOL)
-
-# Build the LLVM pass to be used with the optimizer
-add_library(feature_pass MODULE ${FEATURE_SRC})
-
-# target_include_directories(feature_pass ${LLVM_INCLUDE_DIRS} ${FLINT_INCLUDE_DIR} "${PROJECT_SOURCE_DIR}/include")
 
 # Build the integration layer to be used with the Celerity runtime
 if(CELERITY_RUNTIME)

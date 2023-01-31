@@ -1,6 +1,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <vector>
+#include <cxxabi.h>
 using namespace std;
 
 #include <llvm/IR/Module.h>
@@ -21,7 +22,7 @@ using namespace celerity;
 FeatureAnalysis::~FeatureAnalysis() {}
 
 void FeatureAnalysis::extract(BasicBlock& bb) {
-	for(Instruction& i : bb) {
+	for (Instruction& i : bb) {
 		features->eval(i);
 	}
 }
@@ -30,7 +31,7 @@ void FeatureAnalysis::extract(llvm::Function& fun, llvm::FunctionAnalysisManager
 	KernelInvariant ki(fun);
 	ki.print(llvm::outs());
 
-	for(llvm::BasicBlock& bb : fun)
+	for (llvm::BasicBlock& bb : fun)
 		extract(bb);
 }
 
@@ -40,16 +41,31 @@ void FeatureAnalysis::finalize(llvm::Function& fun) {
 }
 
 ResultFeatureAnalysis FeatureAnalysis::run(llvm::Function& fun, llvm::FunctionAnalysisManager& fam) {
+	// skip the function if it is only a declaration
+	if (fun.isDeclaration())
+		return ResultFeatureAnalysis{false, features->getFeatureCounts(), features->getFeatureValues()};
+
+	// skip the function if it is a SYCL kernel wrapper
+	if (fun.getName().find("kernel_wrapper") != llvm::StringRef::npos)
+		return ResultFeatureAnalysis{false, features->getFeatureCounts(), features->getFeatureValues()};
+
 	// nicely printing analysis params
 	llvm::raw_ostream& debug = outs();
 	debug.changeColor(llvm::raw_null_ostream::Colors::YELLOW, true);
-	debug << "function: ";
+	debug << "IR-function: ";
 	debug.changeColor(llvm::raw_null_ostream::Colors::WHITE, false);
-	debug << fun.getName().str();
+	debug << fun.getName().str() << "\n";
+	
 	debug.changeColor(llvm::raw_null_ostream::Colors::YELLOW, true);
-	debug << " feature-set: ";
+	debug << "demangled-function: ";
+	debug.changeColor(llvm::raw_null_ostream::Colors::WHITE, false);
+	debug << get_demangled_name(fun) << "\n";
+
+	debug.changeColor(llvm::raw_null_ostream::Colors::YELLOW, true);
+	debug << "feature-set: ";
 	debug.changeColor(llvm::raw_null_ostream::Colors::WHITE, false);
 	debug << features->getName();
+
 	debug.changeColor(llvm::raw_null_ostream::Colors::YELLOW, true);
 	debug << " analysis-name: ";
 	debug.changeColor(llvm::raw_null_ostream::Colors::WHITE, false);
@@ -57,11 +73,10 @@ ResultFeatureAnalysis FeatureAnalysis::run(llvm::Function& fun, llvm::FunctionAn
 
 	// reset all feature values
 	features->reset();
-	// skip the function if it is only a declaration
-	if(fun.isDeclaration()) return ResultFeatureAnalysis{features->getFeatureCounts(), features->getFeatureValues()};
+
 	// feature extraction
 	extract(fun, fam);
 	// feature post-processing (e.g., normalization)
 	finalize(fun);
-	return ResultFeatureAnalysis{features->getFeatureCounts(), features->getFeatureValues()};
+	return ResultFeatureAnalysis{true, features->getFeatureCounts(), features->getFeatureValues()};
 }
