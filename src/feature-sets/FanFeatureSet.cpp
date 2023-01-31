@@ -79,30 +79,18 @@ void Fan19FeatureSet::eval(llvm::Instruction& inst, int contribution)
   }
 
   // global & local memory access
-  if (const LoadInst* li = dyn_cast<LoadInst>(&inst)) // check load instruction
-  {
-    const Instruction* previous = li->getPrevNode();
-    const AddrSpaceCastInst* cast_inst = dyn_cast<AddrSpaceCastInst>(previous);
+  if (isa<LoadInst>(inst) || isa<StoreInst>(inst)) {
+    const llvm::Instruction* previous = inst.getPrevNode();
 
-    if (cast_inst) {
-      cast_inst->getSrcAddressSpace();
-    }
+    unsigned address_space = 0;
+    if (const AddrSpaceCastInst* cast_inst = dyn_cast<AddrSpaceCastInst>(previous))
+      address_space = cast_inst->getSrcAddressSpace();
 
-    unsigned address_space = li->getPointerAddressSpace();
-    std::cout << "load, address_space_type: " << address_space << "\n";
-    if (isLocalMemoryAccess(address_space))
-      add("mem_loc", contribution);
     if (isGlobalMemoryAccess(address_space))
       add("mem_gl", contribution);
-    return;
-  } else if (const StoreInst* si = dyn_cast<StoreInst>(&inst)) // check store instuction
-  {
-    unsigned address_space = si->getPointerAddressSpace();
-    std::cout << "store, address_space_type: " << address_space << "\n";
     if (isLocalMemoryAccess(address_space))
       add("mem_loc", contribution);
-    if (isGlobalMemoryAccess(address_space))
-      add("mem_gl", contribution);
+
     return;
   }
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-alias sycl="clang++ -O2 -fsycl -fsycl-device-only"
+alias sycl="clang++ -O2 -fsycl -fsycl-targets=nvptx64-nvidia-cuda -fsycl-device-only"
 alias opt=opt-15
 alias llvm-dis=llvm-dis-15
 
