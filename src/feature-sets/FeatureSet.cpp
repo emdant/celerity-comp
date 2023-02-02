@@ -30,20 +30,13 @@ void FeatureSet::add(const string& feature_name, int contribution)
 
 void FeatureSet::normalize(Function& fun)
 {
-  float instructionContribution = instruction_tot_contrib == 0 ? 0.f : 1.0f / float(instruction_tot_contrib);
+  float instructionContribution =
+   instruction_tot_contrib == 0 ? 0.f : (1.0f / static_cast<float>(instruction_tot_contrib));
 
-  // for(auto entry : fs.raw){
-  // for(StringMap<unsigned>::const_iterator it = fs.raw.begin();
-  //     it != fs.raw.end();
-  //     it++)
   auto f_names = raw.keys();
   for (auto feature_name : f_names) {
-    // for(std::pair<std::string, unsigned> entry : fs.raw){
-    // const string feature_name = it->first;
-    // float instTypeNum = float(it->second);
-    int inst_int_val = raw[feature_name];
-    float inst_flt_val = float(inst_int_val);
-    feat[feature_name] = inst_flt_val * instructionContribution;
+    float instructions_number = static_cast<float>(raw[feature_name]);
+    feat[feature_name] = instructions_number * instructionContribution;
   }
 }
 

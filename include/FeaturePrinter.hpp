@@ -29,6 +29,9 @@ public:
     if (!analysis_result.printResult)
       return PreservedAnalyses::all();
 
+    if (!out_stream.is_displayed())
+      out_stream.enable_colors(false);
+
     out_stream.changeColor(llvm::raw_null_ostream::Colors::MAGENTA);
     out_stream << "Print features for function: " << fun.getName() << "\n";
     out_stream.changeColor(llvm::raw_null_ostream::Colors::YELLOW);

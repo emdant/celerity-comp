@@ -1,56 +1,57 @@
 #include <sycl/sycl.hpp>
 
-template<typename DataT, int Dim>
-class LocalMemoryBenchmark {
-  public:
-  LocalMemoryBenchmark(sycl::accessor<DataT, Dim, sycl::access_mode::read> in,
-    sycl::accessor<DataT, Dim, sycl::access_mode::write> out,
-    sycl::local_accessor<DataT, Dim> local) 
-    : m_in{in}, m_out{out}, m_local{local} {}
+template <typename DataT, size_t GlobalSize, size_t LocalSize>
+class LocalMemoryKernel;
 
-  void operator()(sycl::nd_item<Dim> item) const {
-    sycl::id<Dim> lid = item.get_local_id();
-    sycl::id<Dim> gid = item.get_global_id();
-    
-    m_local[lid] = m_in[gid];
-    m_out[gid] = m_local[lid];
-  }
-
-  private:
-    sycl::accessor<DataT, Dim, sycl::access_mode::read> m_in;
-    sycl::accessor<DataT, Dim, sycl::access_mode::write> m_out;
-    sycl::local_accessor<DataT, Dim> m_local;
-};
-
-int main()
+template <typename DataT, size_t GlobalSize, size_t LocalSize>
+void run()
 {
-  constexpr size_t global_size = 4096; 
-  constexpr size_t local_size = 32;
-
   sycl::queue q;
-  std::array<float, global_size> in_array;
-  std::array<float, global_size> out_array;
+  std::array<DataT, GlobalSize> in_array;
+  std::array<DataT, GlobalSize> out_array;
 
   in_array.fill(1.0f);
 
   {
-    sycl::buffer<float, 1> in_buf {in_array};
-    sycl::buffer<float, 1> out_buf {out_array};
+    sycl::buffer<DataT, 1> in_buf{in_array};
+    sycl::buffer<DataT, 1> out_buf{out_array};
 
     q.submit([&](sycl::handler& cgh) {
-      sycl::accessor<float, 1, sycl::access_mode::read> in_acc {in_buf, cgh};
-      sycl::accessor<float, 1, sycl::access_mode::write> out_acc {out_buf, cgh};
-      sycl::local_accessor<float, 1> local_acc {local_size, cgh};
-      
-      sycl::nd_range<1> ndr {global_size, local_size};
+      sycl::accessor<DataT, 1, sycl::access_mode::read> in_acc{in_buf, cgh};
+      sycl::accessor<DataT, 1, sycl::access_mode::write> out_acc{out_buf, cgh};
+      sycl::local_accessor<DataT, 1> local_acc{LocalSize, cgh};
 
-      cgh.parallel_for(ndr, LocalMemoryBenchmark<float, 1> {in_acc, out_acc, local_acc});
+      sycl::nd_range<1> ndr{GlobalSize, LocalSize};
+
+      cgh.parallel_for<LocalMemoryKernel<DataT, GlobalSize, LocalSize>>(ndr, [=](sycl::nd_item<1> item) {
+        sycl::id<1> lid = item.get_local_id();
+        sycl::id<1> gid = item.get_global_id();
+
+        local_acc[lid] = in_acc[gid];
+        out_acc[gid] = local_acc[lid];
+      });
     });
-    
   }
 
-  for (auto value : out_array)
-    assert(value == 1.0f);
+  DataT sum = 0;
+  for (DataT value : out_array) {
+    assert(value == 1);
+    sum += value;
+  }
+  std::cout << sum << std::endl;
+}
+
+int main()
+{
+  run<int, 4096, 8>();
+  run<int, 4096, 16>();
+  run<int, 4096, 32>();
+  run<int, 4096, 64>();
+
+  run<float, 4096, 8>();
+  run<float, 4096, 16>();
+  run<float, 4096, 32>();
+  run<float, 4096, 64>();
 
   return 0;
 }

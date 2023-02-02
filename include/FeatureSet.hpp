@@ -43,7 +43,6 @@ public:
   llvm::StringMap<float> getFeatureValues() { return feat; }
   std::string getName() { return name; }
 
-  /// set all features to zero
   virtual void reset();
   virtual void add(const std::string& feature_name, int contribution = 1);
   virtual void eval(llvm::Instruction& inst, int contribution = 1) = 0;
@@ -54,18 +53,41 @@ public:
 /// Feature set based on Fan's work, specifically designed for GPU architecture.
 class Fan19FeatureSet : public FeatureSet {
 public:
-  Fan19FeatureSet() : FeatureSet("fan19") {}
+  Fan19FeatureSet() : FeatureSet("fan19")
+  {
+    raw["int_add"] = 0;
+    raw["int_mul"] = 0;
+    raw["int_div"] = 0;
+    raw["int_bw"] = 0;
+    raw["flt_add"] = 0;
+    raw["flt_mul"] = 0;
+    raw["flt_div"] = 0;
+    raw["sp_fun"] = 0;
+    raw["mem_gl"] = 0;
+    raw["mem_loc"] = 0;
+  }
+
   virtual ~Fan19FeatureSet() {}
-  virtual void reset();
   virtual void eval(llvm::Instruction& inst, int contribution = 1);
 };
 
 /// Feature set used by Grewe & O'Boyle. It is very generic and mainly designed to catch mem. vs comp.
 class Grewe11FeatureSet : public FeatureSet {
 public:
-  Grewe11FeatureSet() : FeatureSet("grewe11") {}
+  Grewe11FeatureSet() : FeatureSet("grewe11")
+  {
+    raw["int"] = 0;
+    raw["int4"] = 0;
+    raw["float"] = 0;
+    raw["float4"] = 0;
+    raw["math"] = 0;
+    raw["barrier"] = 0;
+    raw["mem_acc"] = 0;
+    raw["mem_loc"] = 0;
+    raw["mem_coal"] = 0;
+  }
+
   virtual ~Grewe11FeatureSet() {}
-  virtual void reset();
   virtual void eval(llvm::Instruction& inst, int contribution = 1);
   virtual void normalize(llvm::Function& fun);
 };
@@ -75,7 +97,6 @@ class FullFeatureSet : public FeatureSet {
 public:
   FullFeatureSet() : FeatureSet("full") {}
   virtual ~FullFeatureSet() {}
-  // virtual void reset(); we are fine the the super class reset()
   virtual void eval(llvm::Instruction& inst, int contribution = 1);
 };
 
