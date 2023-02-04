@@ -1,5 +1,5 @@
 #!/bin/bash
-alias sycl="clang++ -O2 -fsycl -fsycl-targets=nvptx64-nvidia-cuda -fsycl-device-only"
+alias sycl="clang++ -O3 -fsycl -fsycl-targets=nvptx64-nvidia-cuda -fsycl-device-only"
 alias opt=opt-15
 alias llvm-dis=llvm-dis-15
 
@@ -15,7 +15,7 @@ done
 # feature extraction from bitcode
 for file in sycl/*.bc; do
     echo "--- extracing features from sycl/$file ---"
-    opt -load-pass-plugin ../libfeature_pass.so  --passes="print<feature>" -disable-output $file
+    opt -load-pass-plugin ./libfeature_pass.so  --passes="print<feature>" -disable-output $file
 
     # ../features -i $bc 
     # ../features -i $bc -fe kofler

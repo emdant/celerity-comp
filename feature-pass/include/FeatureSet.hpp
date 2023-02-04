@@ -10,20 +10,6 @@
 
 namespace celerity {
 
-// Supported feature sets
-enum FeatureSetOptions { fan19,
-                         grewe13,
-                         full };
-
-/* Feature normalization approches
-enum class feature_norm {
-    NONE,
-    SUM,
-    MINMAX_LINEAR,
-    MINMAX_LOG
-};
-*/
-
 /// A set of features, including both raw values and normalized ones.
 /// Abstract class, with different subslasses
 class FeatureSet {

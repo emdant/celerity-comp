@@ -49,16 +49,6 @@ protected:
   std::string analysis_name;
 }; // end FeatureAnalysis
 
-/// struct used for keeping analysis arguments in command line
-struct FeatureAnalysisParam {
-  FeatureSetOptions feature_set;
-  std::string analysis;
-  std::string normalization;
-  std::string filename;
-  bool help;
-  bool verbose;
-};
-
 using FARegistry = Registry<celerity::FeatureAnalysis*>;
 
 } // end namespace celerity
