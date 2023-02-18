@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <sycl/sycl.hpp>
 
-template <size_t Size, size_t Coarsening, size_t Iterations, size_t PercFloatAddsub, size_t PercFloatMul, size_t PercFloatDiv, size_t PercIntAddsub, size_t PercIntMul, size_t PercIntDiv, size_t PercSpFunc>
+template <size_t Size, size_t Coarsening, size_t PercFloatAddsub, size_t PercFloatMul, size_t PercFloatDiv, size_t PercIntAddsub, size_t PercIntMul, size_t PercIntDiv, size_t PercSpFunc>
 void run(float f_fill_value, int i_fill_value)
 {
   sycl::queue q;
@@ -75,12 +75,10 @@ void run(float f_fill_value, int i_fill_value)
           
           // clang-format off
           #pragma unroll
-          for (size_t i_div = 0; i_div < PercIntDiv; i_div++) {
+          for (size_t i_div = 0; i_div < PercIntDiv + 1; i_div++) {
             i1 = i1 / i0;
             i0 = i0 / i1;
           }
-          i1 = i1 / i0;
-          i1 = i1 / i0;
 
           // clang-format off
           #pragma unroll
@@ -104,7 +102,41 @@ int main()
   float f_fill = rand() % 1 + 1;
   int i_fill = rand() % 1 + 1;
 
-  run<4096, 1, 1, 10, 10, 10, 10, 10, 10, 10>(f_fill, i_fill);
+  run<4096, 1, 0, 0, 0, 0, 0, 5, 0>(f_fill, i_fill);
+
+  // float
+  run<4096, 1, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 2, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
+  
+  // int
+  run<4096, 1, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 2, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
+  
+  // float + sp
+  run<4096, 1, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
+  run<4096, 2, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
+  
+  // int + sp
+  run<4096, 1, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 2, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
+  
+  // equal float and int
+  run<4096, 1, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 2, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 1, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 2, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
+  
+  // more float than int
+  run<4096, 1, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 2, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 1, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 2, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
+  
+  // more int than float 
+  run<4096, 1, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
+  run<4096, 2, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
+  run<4096, 1, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
+  run<4096, 2, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
 
   return 0;
 }

@@ -1,9 +1,6 @@
 #include <sycl/sycl.hpp>
 
 template <size_t Size, size_t Coarsening, size_t Iterations>
-class SpecialFunctionsKernel;
-
-template <size_t Size, size_t Coarsening, size_t Iterations>
 void run()
 {
   sycl::queue q;
@@ -21,7 +18,7 @@ void run()
       sycl::accessor<float, 1, sycl::access_mode::write> out_acc{out_buf, cgh};
       sycl::range<1> r{Size / Coarsening};
 
-      cgh.parallel_for<SpecialFunctionsKernel<Size, Coarsening, Iterations>>(r, [=](sycl::id<1> id) {
+      cgh.parallel_for(r, [=](sycl::id<1> id) {
         size_t base_data_index = id.get(0) * Coarsening;
 
 #pragma unroll

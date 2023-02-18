@@ -1,9 +1,6 @@
 #include <sycl/sycl.hpp>
 
 template <typename DataT, size_t Size, size_t Coarsening>
-class GlobalMemoryKernel;
-
-template <typename DataT, size_t Size, size_t Coarsening>
 void run()
 {
   sycl::queue q;
@@ -21,7 +18,7 @@ void run()
       sycl::accessor<DataT, 1, sycl::access_mode::write> out_acc{out_buf, cgh};
       sycl::range<1> r{Size / Coarsening};
 
-      cgh.parallel_for<GlobalMemoryKernel<DataT, Size, Coarsening>>(r, [=](sycl::id<1> id) {
+      cgh.parallel_for(r, [=](sycl::id<1> id) {
         size_t base_data_index = id.get(0) * Coarsening;
 
 #pragma unroll

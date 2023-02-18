@@ -1,9 +1,6 @@
 #include <sycl/sycl.hpp>
 
 template <typename DataT, size_t GlobalSize, size_t LocalSize>
-class LocalMemoryKernel;
-
-template <typename DataT, size_t GlobalSize, size_t LocalSize>
 void run()
 {
   sycl::queue q;
@@ -23,7 +20,7 @@ void run()
 
       sycl::nd_range<1> ndr{GlobalSize, LocalSize};
 
-      cgh.parallel_for<LocalMemoryKernel<DataT, GlobalSize, LocalSize>>(ndr, [=](sycl::nd_item<1> item) {
+      cgh.parallel_for(ndr, [=](sycl::nd_item<1> item) {
         sycl::id<1> lid = item.get_local_id();
         sycl::id<1> gid = item.get_global_id();
 
