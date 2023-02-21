@@ -19,7 +19,7 @@ llvm_map_components_to_libnames(llvm_libs support passes core irreader analysis)
 option(EXTRACTOR_TOOL "Build the external feature extractor tool" OFF)
 
 # Optional: Support more advanced and accurate feature peresentation
-option(POLFEAT "Support for polynomial features" ON)
+option(POLFEAT "Support for polynomial features" OFF)
 
 # Optional: Install sample scripts for several
 option(SAMPLE_SCRIPTS "Install sample scripts for C functions, OpenCL and SYCL" ON)
