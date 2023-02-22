@@ -20,7 +20,7 @@ void run()
 
       sycl::nd_range<1> ndr{GlobalSize, LocalSize};
 
-      cgh.parallel_for(ndr, [=](sycl::nd_item<1> item) {
+      cgh.parallel_for<class LocalMemory>(ndr, [=](sycl::nd_item<1> item) {
         sycl::id<1> lid = item.get_local_id();
         sycl::id<1> gid = item.get_global_id();
 

@@ -23,7 +23,7 @@ void run(float f_fill_value, int i_fill_value)
       sycl::accessor<float, 1, sycl::access_mode::write> out_acc{out_buf, cgh};
       sycl::range<1> r{Size / Coarsening};
 
-      cgh.parallel_for(r, [=](sycl::id<1> id) {
+      cgh.parallel_for<class Arithmetic>(r, [=](sycl::id<1> id) {
         size_t base_data_index = id.get(0) * Coarsening;
 
         // clang-format off
@@ -102,41 +102,39 @@ int main()
   float f_fill = rand() % 1 + 1;
   int i_fill = rand() % 1 + 1;
 
-  run<4096, 1, 0, 0, 0, 0, 0, 5, 0>(f_fill, i_fill);
-
   // float
-  run<4096, 1, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
-  run<4096, 2, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 1, 2, 3, 3, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 2, 2, 3, 3, 0, 0, 0, 0>(f_fill, i_fill);
   
   // int
-  run<4096, 1, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
-  run<4096, 2, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 1, 0, 0, 0, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 2, 0, 0, 0, 2, 3, 3, 0>(f_fill, i_fill);
   
   // float + sp
-  run<4096, 1, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
-  run<4096, 2, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
+  run<4096, 1, 2, 3, 3, 0, 0, 0, 1>(f_fill, i_fill);
+  run<4096, 2, 2, 3, 3, 0, 0, 0, 1>(f_fill, i_fill);
   
   // int + sp
-  run<4096, 1, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
-  run<4096, 2, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 1, 0, 0, 0, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 2, 0, 0, 0, 2, 3, 3, 1>(f_fill, i_fill);
   
   // equal float and int
-  run<4096, 1, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
-  run<4096, 2, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
-  run<4096, 1, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
-  run<4096, 2, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 1, 2, 3, 3, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 2, 2, 3, 3, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 1, 2, 3, 3, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 2, 2, 3, 3, 2, 3, 3, 1>(f_fill, i_fill);
   
   // more float than int
-  run<4096, 1, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
-  run<4096, 2, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
-  run<4096, 1, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
-  run<4096, 2, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 1, 4, 5, 5, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 2, 4, 5, 5, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 1, 4, 5, 5, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 2, 4, 5, 5, 2, 3, 3, 1>(f_fill, i_fill);
   
   // more int than float 
-  run<4096, 1, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
-  run<4096, 2, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
-  run<4096, 1, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
-  run<4096, 2, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
+  run<4096, 1, 2, 3, 3, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 2, 2, 3, 3, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 1, 2, 3, 3, 4, 5, 5, 1>(f_fill, i_fill);
+  run<4096, 2, 2, 3, 3, 4, 5, 5, 1>(f_fill, i_fill);
 
   return 0;
 }

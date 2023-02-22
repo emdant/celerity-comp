@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <sycl/sycl.hpp>
-//TODO: controllare addresspace(3) e meorizzare i registri in una lista, fare lo stesso anche per addresspace(1) cioè global memory
-//TODO: risolvere numerod i accessi alla memoria local quando il coarsening è maggiore di 1
+
 template <size_t Size, size_t LocalSize, size_t Coarsening, size_t PercFloatAddsub, size_t PercFloatMul, size_t PercFloatDiv, size_t PercIntAddsub, size_t PercIntMul, size_t PercIntDiv, size_t PercSpFunc>
 void run(float f_fill_value, int i_fill_value)
 {
@@ -29,20 +28,21 @@ void run(float f_fill_value, int i_fill_value)
       sycl::range<1> r{Size / Coarsening};
       sycl::range<1> local_r{LocalSize};
 
-      cgh.parallel_for<class LocalMemory>(sycl::nd_range<1>{r, local_r}, [=](sycl::nd_item<1> it) {
-        sycl::group group = it.get_group();
+      cgh.parallel_for<class ArithmeticLocalMemory>(sycl::nd_range<1>{r, local_r}, [=](sycl::nd_item<1> it) {
+        sycl::group<1> group = it.get_group();
         sycl::id<1> global_id = it.get_global_id();
         sycl::id<1> local_id = it.get_local_id();
         size_t global_base_data_index = global_id.get(0) * Coarsening;
         size_t local_base_data_index = local_id.get(0) * Coarsening;
 
         // LocalSize * Coarsening
+        // clang-format off
         #pragma unroll
-        for(size_t i = 0; i < Coarsening; i++){
-          in_float_local_acc[local_base_data_index+i] = in_float_acc[global_base_data_index+i];
-          in_int_local_acc[local_base_data_index+i] = in_int_acc[global_base_data_index+i];
+        for (size_t i = 0; i < Coarsening; i++) {
+          in_float_local_acc[local_base_data_index + i] = in_float_acc[global_base_data_index + i];
+          in_int_local_acc[local_base_data_index + i] = in_int_acc[global_base_data_index + i];
         }
-        
+
         sycl::group_barrier(group);
 
         // clang-format off
@@ -51,10 +51,11 @@ void run(float f_fill_value, int i_fill_value)
           size_t data_index = local_base_data_index + i;
 
           float f0 = in_float_local_acc[data_index];
-          int i0  = in_int_local_acc[data_index];
+          int i0 = in_int_local_acc[data_index];
+          int zero = i0 >> 1;
 
           #pragma unroll
-          for(size_t j = 0; j < LocalSize * Coarsening; j++){
+          for (size_t j = 0; j < LocalSize * Coarsening; j++) {
             float f1 = in_int_local_acc[j];
             int i1 = in_float_local_acc[j];
             
@@ -107,6 +108,9 @@ void run(float f_fill_value, int i_fill_value)
               i1 = i1 + i0;
               i0 = i0 + i1;
             }
+
+            f0 = f0 * zero + 1;
+            i0 = i0 * zero + 1;
           }
 
           out_acc[data_index] = i0 + f0;
@@ -124,128 +128,99 @@ int main()
   float f_fill = rand() % 1 + 1;
   int i_fill = rand() % 1 + 1;
 
-
   // float
-  run<4096, 8, 1, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
-  // run<4096, 16, 1, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
-  // run<4096, 32, 1, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
-  // run<4096, 64, 1, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 8, 1, 2, 3, 3, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 16, 1, 2, 3, 3, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 32, 1, 2, 3, 3, 0, 0, 0, 0>(f_fill, i_fill);
 
-
-  run<4096, 8, 2, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
-  // run<4096, 16, 2, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
-  // run<4096, 32, 2, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
-  // run<4096, 64, 2, 4, 5, 5, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 8, 2, 2, 3, 3, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 16, 2, 2, 3, 3, 0, 0, 0, 0>(f_fill, i_fill);
+  run<4096, 32, 2, 2, 3, 3, 0, 0, 0, 0>(f_fill, i_fill);
 
   
-  // // int
-  // run<4096, 8, 1, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 16, 1, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 32, 1, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 64, 1, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
+  // int
+  run<4096, 8, 1, 0, 0, 0, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 16, 1, 0, 0, 0, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 32, 1, 0, 0, 0, 2, 3, 3, 0>(f_fill, i_fill);
 
-
-  // run<4096, 8, 2, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 16, 2, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 32, 2, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 64, 2, 0, 0, 0, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 8, 2, 0, 0, 0, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 16, 2, 0, 0, 0, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 32, 2, 0, 0, 0, 2, 3, 3, 0>(f_fill, i_fill);
 
   
-  // // float + sp
-  // run<4096, 8, 1, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
-  // run<4096, 16, 1, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
-  // run<4096, 32, 1, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
-  // run<4096, 64, 1, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
+  // float + sp
+  run<4096, 8, 1, 2, 3, 3, 0, 0, 0, 1>(f_fill, i_fill);
+  run<4096, 16, 1, 2, 3, 3, 0, 0, 0, 1>(f_fill, i_fill);
+  run<4096, 32, 1, 2, 3, 3, 0, 0, 0, 1>(f_fill, i_fill);
 
-
-  // run<4096, 8, 2, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
-  // run<4096, 16, 2, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
-  // run<4096, 32, 2, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
-  // run<4096, 64, 2, 4, 5, 5, 0, 0, 0, 2>(f_fill, i_fill);
+  run<4096, 8, 2, 2, 3, 3, 0, 0, 0, 1>(f_fill, i_fill);
+  run<4096, 16, 2, 2, 3, 3, 0, 0, 0, 1>(f_fill, i_fill);
+  run<4096, 32, 2, 2, 3, 3, 0, 0, 0, 1>(f_fill, i_fill);
 
   
-  // // int + sp
-  // run<4096, 8, 1, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 16, 1, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 32, 1, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 64, 1, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
+  // int + sp
+  run<4096, 8, 1, 0, 0, 0, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 16, 1, 0, 0, 0, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 32, 1, 0, 0, 0, 2, 3, 3, 1>(f_fill, i_fill);
 
-  // run<4096, 8, 2, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 16, 2, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 32, 2, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 64, 2, 0, 0, 0, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 8, 2, 0, 0, 0, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 16, 2, 0, 0, 0, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 32, 2, 0, 0, 0, 2, 3, 3, 1>(f_fill, i_fill);
 
   
-  // // equal float and int
-  // run<4096, 8, 1, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 16, 1, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 32, 1, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 64, 1, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
+  // equal float and int
+  run<4096, 8, 1, 2, 3, 3, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 16, 1, 2, 3, 3, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 32, 1, 2, 3, 3, 2, 3, 3, 0>(f_fill, i_fill);
 
 
-  // run<4096, 8, 2, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 16,2, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 32,2, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 64,2, 4, 5, 5, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 8, 2, 2, 3, 3, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 16,2, 2, 3, 3, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 32,2, 2, 3, 3, 2, 3, 3, 0>(f_fill, i_fill);
 
-  // run<4096, 8, 1, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 16, 1, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 32, 1, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 64, 1, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 8, 1, 2, 3, 3, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 16, 1, 2, 3, 3, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 32, 1, 2, 3, 3, 2, 3, 3, 1>(f_fill, i_fill);
 
-  // run<4096, 8, 2, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 16, 2, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 32, 2, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 64, 2, 4, 5, 5, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 8, 2, 2, 3, 3, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 16, 2, 2, 3, 3, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 32, 2, 2, 3, 3, 2, 3, 3, 1>(f_fill, i_fill);
 
   
-  // // more float than int
-  // run<4096, 8, 1, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 16, 1, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 32, 1, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 64, 1, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
+  // more float than int
+  run<4096, 8, 1, 4, 5, 5, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 16, 1, 4, 5, 5, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 32, 1, 4, 5, 5, 2, 3, 3, 0>(f_fill, i_fill);
 
+  run<4096, 8, 2, 4, 5, 5, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 16, 2, 4, 5, 5, 2, 3, 3, 0>(f_fill, i_fill);
+  run<4096, 32, 2, 4, 5, 5, 2, 3, 3, 0>(f_fill, i_fill);
 
-  // run<4096, 8, 2, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 16, 2, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 32, 2, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
-  // run<4096, 64, 2, 8, 10, 10, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 8, 1, 4, 5, 5, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 16, 1, 4, 5, 5, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 32, 1, 4, 5, 5, 2, 3, 3, 1>(f_fill, i_fill);
 
-
-  // run<4096, 8, 1, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 16, 1, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 32, 1, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 64, 1, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
-
-  // run<4096, 8, 2, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 16, 2, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 32, 2, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
-  // run<4096, 64, 2, 8, 10, 10, 4, 5, 5, 2>(f_fill, i_fill);
+  run<4096, 8, 2, 4, 5, 5, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 16, 2, 4, 5, 5, 2, 3, 3, 1>(f_fill, i_fill);
+  run<4096, 32, 2, 4, 5, 5, 2, 3, 3, 1>(f_fill, i_fill);
 
   
-  // // more int than float 
-  // run<4096, 8,1, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
-  // run<4096, 16,1, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
-  // run<4096, 32,1, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
-  // run<4096, 64,1, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
+  // more int than float 
+  run<4096, 8,1, 2, 3, 3, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 16,1, 2, 3, 3, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 32,1, 2, 3, 3, 4, 5, 5, 0>(f_fill, i_fill);
 
-  // run<4096, 8,2, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
-  // run<4096, 16,2, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
-  // run<4096, 32,2, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
-  // run<4096, 64,2, 4, 5, 5, 8, 10, 10, 0>(f_fill, i_fill);
+  run<4096, 8,2, 2, 3, 3, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 16,2, 2, 3, 3, 4, 5, 5, 0>(f_fill, i_fill);
+  run<4096, 32,2, 2, 3, 3, 4, 5, 5, 0>(f_fill, i_fill);
 
+  run<4096, 8,1, 2, 3, 3, 4, 5, 5, 1>(f_fill, i_fill);
+  run<4096, 16,1, 2, 3, 3, 4, 5, 5, 1>(f_fill, i_fill);
+  run<4096, 32,1, 2, 3, 3, 4, 5, 5, 1>(f_fill, i_fill);
 
-
-  // run<4096, 8,1, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
-  // run<4096, 16,1, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
-  // run<4096, 32,1, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
-  // run<4096, 64,1, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
-
-
-  // run<4096, 8, 2, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
-  // run<4096, 16, 2, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
-  // run<4096, 32, 2, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
-  // run<4096, 64, 2, 4, 5, 5, 8, 10, 10, 2>(f_fill, i_fill);
+  run<4096, 8, 2, 2, 3, 3, 4, 5, 5, 1>(f_fill, i_fill);
+  run<4096, 16, 2, 2, 3, 3, 4, 5, 5, 1>(f_fill, i_fill);
+  run<4096, 32, 2, 2, 3, 3, 4, 5, 5, 1>(f_fill, i_fill);
 
 
   return 0;

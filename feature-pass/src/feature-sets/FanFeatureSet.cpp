@@ -70,11 +70,27 @@ void Fan19FeatureSet::eval(llvm::Instruction& instruction, int contribution)
 
   // global & local memory access
   if (isa<LoadInst>(instruction) || isa<StoreInst>(instruction)) {
-    const llvm::Instruction* previous = instruction.getPrevNode();
+    // const llvm::Instruction* previous = instruction.getPrevNode();
 
     unsigned address_space = 0;
-    if (const AddrSpaceCastInst* cast_inst = dyn_cast<AddrSpaceCastInst>(previous))
-      address_space = cast_inst->getSrcAddressSpace();
+    if (const LoadInst* li = dyn_cast<LoadInst>(&instruction)) {
+      const Value* val = li->getPointerOperand();
+
+      for (const Use& use : val->uses()) {
+        if (const AddrSpaceCastInst* addrspace_inst = dyn_cast<AddrSpaceCastInst>(use))
+          address_space = addrspace_inst->getSrcAddressSpace();
+      }
+    } else if (const StoreInst* si = dyn_cast<StoreInst>(&instruction)) {
+      const Value* val = si->getPointerOperand();
+
+      for (const Use& use : val->uses()) {
+        if (const AddrSpaceCastInst* addrspace_inst = dyn_cast<AddrSpaceCastInst>(use))
+          address_space = addrspace_inst->getSrcAddressSpace();
+      }
+    }
+
+    // if (const AddrSpaceCastInst* cast_inst = dyn_cast<AddrSpaceCastInst>(previous))
+    //   address_space = cast_inst->getSrcAddressSpace();
 
     if (isGlobalMemoryAccess(address_space))
       add("mem_gl", contribution);

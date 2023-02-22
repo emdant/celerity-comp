@@ -13,7 +13,7 @@ void run()
     sycl::buffer<float, 1> in_buf{in_array};
     sycl::buffer<float, 1> out_buf{out_array};
 
-    q.submit([&](sycl::handler& cgh) {
+    q.submit<class SpecialFunctions>([&](sycl::handler& cgh) {
       sycl::accessor<float, 1, sycl::access_mode::read> in_acc{in_buf, cgh};
       sycl::accessor<float, 1, sycl::access_mode::write> out_acc{out_buf, cgh};
       sycl::range<1> r{Size / Coarsening};
