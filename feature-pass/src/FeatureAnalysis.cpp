@@ -52,6 +52,9 @@ ResultFeatureAnalysis FeatureAnalysis::run(llvm::Function& fun, llvm::FunctionAn
   if (fun.getName().find("kernel_wrapper") != llvm::StringRef::npos)
     return ResultFeatureAnalysis{false, features->getFeatureCounts(), features->getFeatureValues()};
 
+  if (fun.getName().find("RoundedRangeKernel") != llvm::StringRef::npos)
+    return ResultFeatureAnalysis{false, features->getFeatureCounts(), features->getFeatureValues()};
+
   // nicely printing analysis params
   llvm::raw_ostream& debug = outs();
 
