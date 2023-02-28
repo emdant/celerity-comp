@@ -1,22 +1,28 @@
+#include <cstdlib>
 #include <sycl/sycl.hpp>
 
 template <typename DataT, size_t GlobalSize, size_t LocalSize>
 void run()
 {
   sycl::queue q;
-  std::array<DataT, GlobalSize> in_array;
-  std::array<DataT, GlobalSize> out_array;
+  std::array<DataT, GlobalSize> in_array1;
+  std::array<DataT, GlobalSize> in_array2;
+  std::array<DataT, GlobalSize> out_array1;
 
-  in_array.fill(1.0f);
+  in_array1.fill(rand() % 1 + 1);
+  in_array2.fill(rand() % 1 + 1);
 
   {
-    sycl::buffer<DataT, 1> in_buf{in_array};
-    sycl::buffer<DataT, 1> out_buf{out_array};
+    sycl::buffer<DataT, 1> in_buf1{in_array1};
+    sycl::buffer<DataT, 1> in_buf2{in_array2};
+    sycl::buffer<DataT, 1> out_buf1{out_array1};
 
     q.submit([&](sycl::handler& cgh) {
-      sycl::accessor<DataT, 1, sycl::access_mode::read> in_acc{in_buf, cgh};
-      sycl::accessor<DataT, 1, sycl::access_mode::write> out_acc{out_buf, cgh};
-      sycl::local_accessor<DataT, 1> local_acc{LocalSize, cgh};
+      sycl::accessor<DataT, 1, sycl::access_mode::read> in_acc1{in_buf1, cgh};
+      sycl::accessor<DataT, 1, sycl::access_mode::read> in_acc2{in_buf2, cgh};
+      sycl::accessor<DataT, 1, sycl::access_mode::write> out_acc1{out_buf1, cgh};
+      sycl::local_accessor<DataT, 1> local_acc1{LocalSize, cgh};
+      sycl::local_accessor<DataT, 1> local_acc2{LocalSize, cgh};
 
       sycl::nd_range<1> ndr{GlobalSize, LocalSize};
 
@@ -24,18 +30,22 @@ void run()
         sycl::id<1> lid = item.get_local_id();
         sycl::id<1> gid = item.get_global_id();
 
-        local_acc[lid] = in_acc[gid];
-        out_acc[gid] = local_acc[lid];
+        local_acc1[lid] = in_acc1[gid];
+        local_acc2[lid] = in_acc2[gid];
+
+#pragma unroll
+        for (size_t i = 0; i < LocalSize; i++) {
+          local_acc2[lid] *= local_acc1[lid];
+          local_acc2[lid] /= local_acc1[lid];
+          local_acc2[lid] += local_acc1[lid];
+        }
+
+        out_acc1[gid] = local_acc1[lid] + local_acc2[lid];
       });
     });
   }
 
-  DataT sum = 0;
-  for (DataT value : out_array) {
-    assert(value == 1);
-    sum += value;
-  }
-  std::cout << sum << std::endl;
+  std::cout << out_array1[0] << std::endl;
 }
 
 int main()
