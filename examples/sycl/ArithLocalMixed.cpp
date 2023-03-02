@@ -40,7 +40,7 @@ void run(size_t n, size_t compute_iters)
     sycl::range<1> r{n};
     sycl::range<1> local_r{LocalSize};
 
-    h.parallel_for(nd_range<1>{r, local_r}, [=](sycl::nd_item<1> it) {
+    h.parallel_for<class ArithLocalMixed>(nd_range<1>{r, local_r}, [=](sycl::nd_item<1> it) {
       group<1> group = it.get_group();
       int gid = it.get_global_id(0);
       int lid = it.get_local_id(0);
