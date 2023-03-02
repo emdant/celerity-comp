@@ -98,18 +98,18 @@ int main(int argc, char** argv)
   size_t compute_iters = atoi(argv[2]);
 
   run<int, 1, 1, 1, 0>(n, compute_iters);
+  run<int, 2, 2, 2, 0>(n, compute_iters);
   run<int, 3, 3, 3, 0>(n, compute_iters);
-  run<int, 5, 5, 5, 0>(n, compute_iters);
 
   run<int, 1, 1, 1, 1>(n, compute_iters);
+  run<int, 2, 2, 2, 2>(n, compute_iters);
   run<int, 3, 3, 3, 3>(n, compute_iters);
-  run<int, 5, 5, 5, 5>(n, compute_iters);
 
   run<float, 1, 1, 1, 0>(n, compute_iters);
+  run<float, 2, 2, 2, 0>(n, compute_iters);
   run<float, 3, 3, 3, 0>(n, compute_iters);
-  run<float, 5, 5, 5, 0>(n, compute_iters);
 
   run<float, 1, 1, 1, 1>(n, compute_iters);
+  run<float, 2, 2, 2, 2>(n, compute_iters);
   run<float, 3, 3, 3, 3>(n, compute_iters);
-  run<float, 5, 5, 5, 5>(n, compute_iters);
 }

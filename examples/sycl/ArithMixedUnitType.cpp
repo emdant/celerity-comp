@@ -113,6 +113,7 @@ void run(size_t n, size_t compute_iters)
   std::cout << "runtime: " << (end - begin) * 1e-9 << " s\n";
 }
 
+// 1000000 25000
 int main(int argc, char** argv)
 {
 

@@ -90,6 +90,7 @@ void run(size_t n, size_t compute_iters)
   std::cout << "runtime: " << (end - begin) * 1e-9 << " s\n";
 }
 
+// 1000000 500000
 int main(int argc, char** argv)
 {
   size_t n = atoi(argv[1]);
@@ -108,8 +109,8 @@ int main(int argc, char** argv)
 
   std::cout << "div\n";
   run<int, 0, 0, 1, 0>(n, compute_iters);
+  run<int, 0, 0, 2, 0>(n, compute_iters);
   run<int, 0, 0, 3, 0>(n, compute_iters);
-  run<int, 0, 0, 5, 0>(n, compute_iters);
 
   std::cout << "\nfloat\n";
   std::cout << "add\n";
@@ -124,11 +125,11 @@ int main(int argc, char** argv)
 
   std::cout << "div\n";
   run<float, 0, 0, 1, 0>(n, compute_iters);
+  run<float, 0, 0, 2, 0>(n, compute_iters);
   run<float, 0, 0, 3, 0>(n, compute_iters);
-  run<float, 0, 0, 5, 0>(n, compute_iters);
 
   std::cout << "\nspecial\n";
   run<float, 0, 0, 0, 1>(n, compute_iters);
+  run<float, 0, 0, 0, 2>(n, compute_iters);
   run<float, 0, 0, 0, 3>(n, compute_iters);
-  run<float, 0, 0, 0, 5>(n, compute_iters);
 }
