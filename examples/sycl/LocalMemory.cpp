@@ -1,64 +1,44 @@
-#include <cstdlib>
+#include <iostream>
+#include <vector>
+
 #include <sycl/sycl.hpp>
 
-template <typename DataT, size_t GlobalSize, size_t LocalSize>
-void run()
+using namespace sycl;
+
+template <typename ValueType, size_t LocalSize>
+void run(size_t n, size_t compute_iters)
 {
-  sycl::queue q;
-  std::array<DataT, GlobalSize> in_array1;
-  std::array<DataT, GlobalSize> in_array2;
-  std::array<DataT, GlobalSize> out_array1;
+  sycl::queue q(gpu_selector_v);
 
-  in_array1.fill(rand() % 1 + 1);
-  in_array2.fill(rand() % 1 + 1);
+  // Launch the computation
+  event e = q.submit([&](handler& h) {
+    local_accessor<ValueType, 1> local_acc1{LocalSize, h};
 
-  {
-    sycl::buffer<DataT, 1> in_buf1{in_array1};
-    sycl::buffer<DataT, 1> in_buf2{in_array2};
-    sycl::buffer<DataT, 1> out_buf1{out_array1};
+    sycl::nd_range<1> ndr{n, LocalSize};
+    h.parallel_for<class LocalMemory>(ndr, [=](sycl::nd_item<1> item) {
+      int gid = item.get_global_id(0);
+      int lid = item.get_local_id(0);
+      ValueType r0;
 
-    q.submit([&](sycl::handler& cgh) {
-      sycl::accessor<DataT, 1, sycl::access_mode::read> in_acc1{in_buf1, cgh};
-      sycl::accessor<DataT, 1, sycl::access_mode::read> in_acc2{in_buf2, cgh};
-      sycl::accessor<DataT, 1, sycl::access_mode::write> out_acc1{out_buf1, cgh};
-      sycl::local_accessor<DataT, 1> local_acc1{LocalSize, cgh};
-      sycl::local_accessor<DataT, 1> local_acc2{LocalSize, cgh};
-
-      sycl::nd_range<1> ndr{GlobalSize, LocalSize};
-
-      cgh.parallel_for<class LocalMemory>(ndr, [=](sycl::nd_item<1> item) {
-        sycl::id<1> lid = item.get_local_id();
-        sycl::id<1> gid = item.get_global_id();
-
-        local_acc1[lid] = in_acc1[gid];
-        local_acc2[lid] = in_acc2[gid];
-
-#pragma unroll
-        for (size_t i = 0; i < LocalSize; i++) {
-          local_acc2[lid] *= local_acc1[lid];
-          local_acc2[lid] /= local_acc1[lid];
-          local_acc2[lid] += local_acc1[lid];
+      if (gid < n) {
+        for (int i = 0; i < compute_iters; i++) {
+          r0 = local_acc1[lid];
+          local_acc1[LocalSize - lid - 1] = r0;
         }
-
-        out_acc1[gid] = local_acc1[lid] + local_acc2[lid];
-      });
+      }
     });
-  }
-
-  std::cout << out_array1[0] << std::endl;
+  });
+  e.wait_and_throw();
+  uint64_t begin = e.get_profiling_info<info::event_profiling::command_start>(), end = e.get_profiling_info<info::event_profiling::command_end>();
+  std::cout << "runtime: " << (end - begin) * 1e-9 << " s\n";
 }
 
-int main()
+// 1000000 131072
+int main(int argc, char** argv)
 {
-  run<int, 4096, 8>();
-  run<int, 4096, 16>();
-  run<int, 4096, 32>();
-  run<int, 4096, 64>();
 
-  run<float, 4096, 8>();
-  run<float, 4096, 16>();
-  run<float, 4096, 32>();
-  run<float, 4096, 64>();
+  size_t n = atoi(argv[1]);
+  size_t compute_iters = atoi(argv[2]);
 
-  return 0;
+  run<float, 32>(n, compute_iters);
 }

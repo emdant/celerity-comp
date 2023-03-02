@@ -22,24 +22,26 @@ void run(size_t n, size_t compute_iters)
 
   // Launch the computation
   event e = q.submit([&](handler& h) {
-    accessor<ValueType, 1, access_mode::read_write> a_acc{a_buf, h};
+    accessor<ValueType, 1, access_mode::read> a_acc{a_buf, h};
     accessor<ValueType, 1, access_mode::read_write> c1_acc{c1_buf, h};
 
     range<1> grid{n};
 
-    h.parallel_for<class GlobalMemory>(grid, [=](sycl::id<1> id) {
+    h.parallel_for<class L2Unit>(grid, [=](sycl::id<1> id) {
       constexpr size_t unrolls = 32;
-      constexpr size_t stride = 32 * 1024; // size must be at least 1MB elements
       int gid = id.get(0);
       ValueType r0;
 
-      for (int j = 0; j < compute_iters; j += unrolls) {
+      for (int k = 0; k < 10; k++) {
+        for (int j = 0; j < compute_iters; j += unrolls) {
 #pragma unroll
-        for (int i = 0; i < unrolls; i++) {
-          r0 = a_acc[(gid + stride * i) % n];
-          c1_acc[(gid + stride * i) % n] = r0;
+          for (int i = 0; i < unrolls; i++) {
+            r0 = a_acc[gid];
+            c1_acc[gid] = r0;
+          }
         }
       }
+      c1_acc[gid] = r0;
     });
   });
   e.wait_and_throw();
@@ -47,7 +49,7 @@ void run(size_t n, size_t compute_iters)
   std::cout << "runtime: " << (end - begin) * 1e-9 << " s\n";
 }
 
-// 1048576 1000000
+// 1000000 131072
 int main(int argc, char** argv)
 {
 
