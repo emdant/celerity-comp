@@ -13,6 +13,8 @@ for file in sycl/*.cpp; do
 done
 
 mkdir -p features
+mkdir -p features-count
+mkdir -p features-normalized
 
 # feature extraction from bitcode
 cd sycl
@@ -27,8 +29,8 @@ cd ../features
 for tempfile in *.temp; do
   name="${tempfile%.*}"
 
-  features_count="${name}_features_count.csv"
-  features_norm="${name}_features_normalized.csv"
+  features_count="../features-count/${name}_features.csv"
+  features_norm="../features-normalized/${name}_features.csv"
   echo "kernel_name,mem_gl,int_add,int_bw,flt_mul,int_mul,flt_div,sp_fun,mem_loc,int_div,flt_add" > $features_count
   echo "kernel_name,mem_gl,int_add,int_bw,flt_mul,int_mul,flt_div,sp_fun,mem_loc,int_div,flt_add" > $features_norm
 
@@ -65,3 +67,4 @@ for tempfile in *.temp; do
 done
 
 cd ..
+rm -r features

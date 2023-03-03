@@ -131,9 +131,9 @@ void run(size_t n, size_t compute_iters)
   std::cout << "runtime: " << (end - begin) * 1e-9 << " s\n";
 }
 
+// 131072 20000
 int main(int argc, char** argv)
 {
-
   size_t n = atoi(argv[1]);
   size_t compute_iters = atoi(argv[2]);
 
@@ -148,4 +148,16 @@ int main(int argc, char** argv)
   run<8, 1, 1, 1, 3, 3, 3, 0>(n, compute_iters);
   run<16, 1, 1, 1, 3, 3, 3, 0>(n, compute_iters);
   run<32, 1, 1, 1, 3, 3, 3, 0>(n, compute_iters);
+
+  run<8, 1, 1, 1, 1, 1, 1, 1>(n, compute_iters);
+  run<16, 1, 1, 1, 1, 1, 1, 1>(n, compute_iters);
+  run<32, 1, 1, 1, 1, 1, 1, 1>(n, compute_iters);
+
+  run<8, 3, 3, 3, 1, 1, 1, 1>(n, compute_iters);
+  run<16, 3, 3, 3, 1, 1, 1, 1>(n, compute_iters);
+  run<32, 3, 3, 3, 1, 1, 1, 1>(n, compute_iters);
+
+  run<8, 1, 1, 1, 3, 3, 3, 1>(n, compute_iters);
+  run<16, 1, 1, 1, 3, 3, 3, 1>(n, compute_iters);
+  run<32, 1, 1, 1, 3, 3, 3, 1>(n, compute_iters);
 }

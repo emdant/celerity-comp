@@ -93,7 +93,6 @@ void run(size_t n, size_t compute_iters)
 // 1000000 100000
 int main(int argc, char** argv)
 {
-
   size_t n = atoi(argv[1]);
   size_t compute_iters = atoi(argv[2]);
 
