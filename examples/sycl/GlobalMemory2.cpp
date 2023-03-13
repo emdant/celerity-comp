@@ -34,7 +34,7 @@ void run(size_t n, size_t compute_iters)
 
     range<1> grid{n};
 
-    h.parallel_for<class GlobalMemory>(grid, [=](sycl::id<1> id) {
+    h.parallel_for<class GlobalMemory2>(grid, [=](sycl::id<1> id) {
       int gid = id.get(0);
       ValueType r0, r1;
 
@@ -42,10 +42,12 @@ void run(size_t n, size_t compute_iters)
 
 #pragma unroll 4
         for (size_t i = 0; i < k; i++) {
-          r0 = a1_acc[gid + i];
-          r1 = a2_acc[gid + i];
-          c1_acc[gid + i] = r0;
-          c2_acc[gid + i] = r1;
+          if (gid + i < n) {
+            r0 = a1_acc[gid + i];
+            r1 = a2_acc[gid + i];
+            c1_acc[gid + i] = r0;
+            c2_acc[gid + i] = r1;
+          }
         }
       }
     });
